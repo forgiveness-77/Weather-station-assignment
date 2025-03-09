@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Environment Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #2c3e50;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .dashboard {
+            width: 80%;
+            max-width: 1200px;
+            padding: 30px;
+            background-color: #34495e;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+            transition: background-color 0.3s ease;
+        }
+        h1 {
+            color: #3498db;
+            font-size: 42px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.4);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+        }
+        canvas {
+            background: #3b4a55;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+        }
+        footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #95a5a6;
+        }
+        footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .hoverable:hover {
+            color: #2980b9;
+            transform: scale(1.05);
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <h1 class="hoverable">Smart Environment Dashboard</h1>
+        <div class="chart-container">
+            <canvas id="environmentChart"></canvas>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 by <a href="https://www.example.com" class="hoverable">IRASUBIZA SALY NELSON</a>. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const ctx = document.getElementById('environmentChart').getContext('2d');
+
+        const environmentChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Air Quality Index (AQI)',
+                        data: [],
+                        backgroundColor: 'rgba(52, 152, 219, 0.4)',
+                        borderColor: '#3498db',
+                        borderWidth: 1,
+                        barThickness: 20,
+                    },
+                    {
+                        label: 'Temperature (°C)',
+                        data: [],
+                        backgroundColor: 'rgba(41, 128, 185, 0.4)',
+                        borderColor: '#2980b9',
+                        borderWidth: 1,
+                        barThickness: 20,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: { display: true, text: "Time" },
+                        grid: { display: false }
+                    },
+                    y: {
+                        title: { display: true, text: "Values" },
+                        grid: { color: '#7f8c8d' },
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }
+                },
+                animations: {
+                    tension: {
+                        duration: 1500,
+                        easing: 'easeOutQuad',
+                        from: 0.4,
+                        to: 0.1,
+                        loop: true
+                    }
+                }
+            }
+        });
+
+        async function fetchEnvironmentData() {
+            try {
+                const response = await fetch("http://localhost:3000/data");
+                const data = await response.json();
+
+                let timeStamps = [];
+                let airQualityData = [];
+                let temperatureData = [];
+
+                data.forEach(item => {
+                    timeStamps.push(item.timestamp.split(" ")[1]);  // Time only
+                    if (item.topic.includes("air_quality")) {
+                        airQualityData.push(parseFloat(item.value));
+                    } else if (item.topic.includes("temperature")) {
+                        temperatureData.push(parseFloat(item.value));
+                    }
+                });
+
+                environmentChart.data.labels = timeStamps;
+                environmentChart.data.datasets[0].data = airQualityData;
+                environmentChart.data.datasets[1].data = temperatureData;
+                environmentChart.update();
+
+            } catch (err) {
+                console.error('Error fetching environment data:', err);
+            }
+        }
+
+        setInterval(fetchEnvironmentData, 30000);
+        fetchEnvironmentData();
+    </script>
+
+</body>
+</html>
